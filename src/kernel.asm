@@ -66,6 +66,7 @@ stage1_begin:
 
 		mov si, msg_lba_not_supported
 		call print_string
+		hlt
 
 	.lba_supported:
 
@@ -85,7 +86,6 @@ stage1_begin:
 
 		mov si, msg_lba_read_failed
 		call print_string
-
 		hlt
 
 	.lba_read_success:
@@ -124,8 +124,12 @@ cmd_help db 'help', 0
 cmd_echo db 'echo', 0
 cmd_echo_len equ $ - cmd_echo
 
-; vbe video mode info
+;
+; VBE info structure
+;
+
 vbe_info_block:
+
 	vbe_signature resb 4
 	vbe_version resw 1
 	vbe_oem_string_ptr_offset resw 1
@@ -144,12 +148,81 @@ vbe_info_block:
 
 vbe_info_block_size equ $ - vbe_info_block
 
+;
+; VBE video mode structure
+;
+
+vbe_mode_block:
+
+	; VESA 1.0
+	vbe_mode_attributes resw 1
+	vbe_mode_window_attributes_a resb 1
+	vbe_mode_window_attributes_a resb 2
+	vbe_mode_window_granularity resw 1
+	vbe_mode_window_size resw q
+	vbe_mode_window_start_segment_a resw 1
+	vbe_mode_window_start_segment_b resw 1
+	vbe_mode_window_far_position_func resw 2
+	vbe_mode_bytes_per_scan_line resw 1
+
+	; VESA OEM (optional in v1.0/1.1)
+	vbe_mode_width resw 1
+	vbe_mode_height resw 1
+	vbe_mode_character_width resb 1
+	vbe_mode_character_height resb 1
+	vbe_mode_memory_planes resb 1
+	vbe_mode_bit_depth resb 1
+	vbe_mode_banks resb 1
+	vbe_mode_memory_model_type resb 1
+	vbe_mode_bank_size resb 1
+	vbe_mode_image_page_capacity resb 1
+	vbe_mode_reserved_1 resb 1
+
+	; VBE 1.2+
+	vbe_mode_red_mask_size resb 1
+	vbe_mode_red_field_position resb 1
+	vbe_mode_green_mask_size resb 1
+	vbe_mode_green_field_position resb 1
+	vbe_mode_blue_mask_size resb 1
+	vbe_mode_blue_field_position resb 1
+	vbe_mode_reserved_mask_size resb 1
+	vbe_mode_reserved_field_position resb 1
+	vbe_mode_direct_color_mode_info resb 1
+
+	; VBE 2.0+
+	vbe_mode_video_buffer_address resw 2
+	vbe_mode_offscreen_memory_pointer resw 2
+	vbe_mode_offscreen_memory_size resw 1
+
+	; VBE 3.0
+	; TODO: Fill in VBE 3.0 structure
+	; 32h	WORD	bytes per scan line in linear modes
+	; 34h	BYTE	number of images (less one) for banked video modes
+	; 35h	BYTE	number of images (less one) for linear video modes
+	; 36h	BYTE	linear modes: size of direct color red mask (in bits)
+	; 37h	BYTE	linear modes: bit position of red mask LSB (e.g. shift count)
+	; 38h	BYTE	linear modes: size of direct color green mask (in bits)
+	; 39h	BYTE	linear modes: bit position of green mask LSB (e.g. shift count)
+	; 3Ah	BYTE	linear modes: size of direct color blue mask (in bits)
+	; 3Bh	BYTE	linear modes: bit position of blue mask LSB (e.g. shift count)
+	; 3Ch	BYTE	linear modes: size of direct color reserved mask (in bits)
+	; 3Dh	BYTE	linear modes: bit position of reserved mask LSB
+	; 3Eh	DWORD	maximum pixel clock for graphics video mode, in Hz
+	; 42h 190 BYTEs	reserved (0)
+
+vbe_mode_block_size equ $ - vbe_mode_block
+
+;
+; Stage 2 (initialise display)
+;
+
 stage2_begin:
 
 setup_display:
 
-	xor bx, bx
+	; Check whether VBE 2 is available.
 
+	call clear_registers
 	mov dword [vbe_signature], 'VBE2'
 	mov ax, 0x4F00
 	mov di, vbe_info_block
@@ -160,24 +233,26 @@ setup_display:
 	call clear_registers
 	mov si, msg_vbe_unavailable
 	call print_string
-
 	hlt
 
 	.fine:
 
+		call clear_registers
+		mov si, msg_vbe_available
+		call print_string
+
 	call clear_registers
-	mov si, msg_vbe_available
+	mov si, vbe_signature
 	call print_string
 
-	mov ax, 0x4f01
+	; Get VBE video mode info.
+
+	call clear_registers
+	mov ax, 0x4F01
 	mov di, vbe_info_block
 	mov cx, 0x4101
 	and cx, 0xfff
 	int 0x10
-
-	call clear_registers
-	mov si, [vbe_signature]
-	call print_string
 
 	cmp dword [vbe_signature], 'VESA'
 	je .get_info_fine
@@ -237,7 +312,6 @@ mainloop:
 	call print_string
 	
 	jmp mainloop
-
 
 help:
 
