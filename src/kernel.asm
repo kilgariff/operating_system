@@ -117,7 +117,7 @@ msg_vbe_get_info_success db 'Successfully retrieved VBE info', 0x0D, 0x0A, 0
 msg_vbe_cannot_get_info db 'Error: Something went wrong when trying to get VBE info', 0x0D, 0x0A, 0
 
 ; define input buffer for receiving commands
-input_buffer resb 64
+input_buffer times 64 db 0
 
 ; define command strings
 cmd_help db 'help', 0
@@ -130,21 +130,21 @@ cmd_echo_len equ $ - cmd_echo
 
 vbe_info_block:
 
-	vbe_signature resb 4
-	vbe_version resw 1
-	vbe_oem_string_ptr_offset resw 1
-	vbe_oem_string_ptr_base resw 1
-	vbe_capabilities resb 4
-	vbe_video_mode_ptr resw 2
-	vbe_total_memory resw 1
+	vbe_signature times 4 db 0
+	vbe_version times 1 dw 0x00
+	vbe_oem_string_ptr_offset times 1 dw 0x00
+	vbe_oem_string_ptr_base times 1 dw 0x00
+	vbe_capabilities times 4 db 0
+	vbe_video_mode_ptr times 2 dw 0x00
+	vbe_total_memory times 1 dw 0x00
 
 	; VBE 2.0
-	vbe_oem_software_rev resw 1
-	vbe_oem_vendor_string_ptr resw 2
-	vbe_oem_product_name_ptr resw 2
-	vbe_oem_product_rev_ptr resw 2
-	vbe_reserved resb 222
-	vbe_oem_data resb 256
+	vbe_oem_software_rev times 1 dw 0x00
+	vbe_oem_vendor_string_ptr times 2 dw 0x00
+	vbe_oem_product_name_ptr times 2 dw 0x00
+	vbe_oem_product_rev_ptr times 2 dw 0x00
+	vbe_reserved times 222 db 0
+	vbe_oem_data times 256 db 0
 
 vbe_info_block_size equ $ - vbe_info_block
 
@@ -155,44 +155,44 @@ vbe_info_block_size equ $ - vbe_info_block
 vbe_mode_block:
 
 	; VESA 1.0
-	vbe_mode_attributes resw 1
-	vbe_mode_window_attributes_a resb 1
-	vbe_mode_window_attributes_a resb 2
-	vbe_mode_window_granularity resw 1
-	vbe_mode_window_size resw q
-	vbe_mode_window_start_segment_a resw 1
-	vbe_mode_window_start_segment_b resw 1
-	vbe_mode_window_far_position_func resw 2
-	vbe_mode_bytes_per_scan_line resw 1
+	vbe_mode_attributes times 1 dw 0x00
+	vbe_mode_window_attributes_a times 2 db 0
+	vbe_mode_window_attributes_b times 2 db 0
+	vbe_mode_window_granularity times 1 dw 0x00
+	vbe_mode_window_size times 1 dw 0x00
+	vbe_mode_window_start_segment_a times 1 dw 0x00
+	vbe_mode_window_start_segment_b times 1 dw 0x00
+	vbe_mode_window_far_position_func times 2 dw 0x00
+	vbe_mode_bytes_per_scan_line times 1 dw 0x00
 
 	; VESA OEM (optional in v1.0/1.1)
-	vbe_mode_width resw 1
-	vbe_mode_height resw 1
-	vbe_mode_character_width resb 1
-	vbe_mode_character_height resb 1
-	vbe_mode_memory_planes resb 1
-	vbe_mode_bit_depth resb 1
-	vbe_mode_banks resb 1
-	vbe_mode_memory_model_type resb 1
-	vbe_mode_bank_size resb 1
-	vbe_mode_image_page_capacity resb 1
-	vbe_mode_reserved_1 resb 1
+	vbe_mode_width times 1 dw 0x00
+	vbe_mode_height times 1 dw 0x00
+	vbe_mode_character_width times 1 db 0
+	vbe_mode_character_height times 1 db 0
+	vbe_mode_memory_planes times 1 db 0
+	vbe_mode_bit_depth times 1 db 0
+	vbe_mode_banks times 1 db 0
+	vbe_mode_memory_model_type times 1 db 0
+	vbe_mode_bank_size times 1 db 0
+	vbe_mode_image_page_capacity times 1 db 0
+	vbe_mode_reserved_1 times 1 db 0
 
 	; VBE 1.2+
-	vbe_mode_red_mask_size resb 1
-	vbe_mode_red_field_position resb 1
-	vbe_mode_green_mask_size resb 1
-	vbe_mode_green_field_position resb 1
-	vbe_mode_blue_mask_size resb 1
-	vbe_mode_blue_field_position resb 1
-	vbe_mode_reserved_mask_size resb 1
-	vbe_mode_reserved_field_position resb 1
-	vbe_mode_direct_color_mode_info resb 1
+	vbe_mode_red_mask_size times 1 db 0
+	vbe_mode_red_field_position times 1 db 0
+	vbe_mode_green_mask_size times 1 db 0
+	vbe_mode_green_field_position times 1 db 0
+	vbe_mode_blue_mask_size times 1 db 0
+	vbe_mode_blue_field_position times 1 db 0
+	vbe_mode_reserved_mask_size times 1 db 0
+	vbe_mode_reserved_field_position times 1 db 0
+	vbe_mode_direct_color_mode_info times 1 db 0
 
 	; VBE 2.0+
-	vbe_mode_video_buffer_address resw 2
-	vbe_mode_offscreen_memory_pointer resw 2
-	vbe_mode_offscreen_memory_size resw 1
+	vbe_mode_video_buffer_address times 2 dw 0x00
+	vbe_mode_offscreen_memory_pointer times 2 dw 0x00
+	vbe_mode_offscreen_memory_size times 1 dw 0x00
 
 	; VBE 3.0
 	; TODO: Fill in VBE 3.0 structure
@@ -331,3 +331,6 @@ echo:
 	call print_string
 	
 	jmp mainloop
+
+
+times 5120-($-$$) db 0
