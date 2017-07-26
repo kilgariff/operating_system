@@ -32,7 +32,7 @@ disk_access_packet:
 	.num_blocks:
 		; BIOS interrupt 0x13 changes this to the number of blocks actually
 		; read or written. I think each block is 512 bytes (same as one sector).
-		dw	2
+		dw	9 ; 10 in total, including this one.
 	.destination_buffer:
 		; these parameters are a SEGMENT:OFFSET address pair, but are stored
 		; in reverse order due to processor being little-endian.
@@ -113,8 +113,9 @@ msg_help db 'Valid commands: ', 0x0D, 0x0A, 0
 msg_invalid_command db 'Invalid input', 0x0D, 0x0A, 0
 msg_vbe_available db 'VBE 2 available', 0x0D, 0x0A, 0
 msg_vbe_unavailable db 'VBE 2 unavailable', 0x0D, 0x0A, 0
-msg_vbe_signature_invalid db "VBE signature was not 'VESA'", 0x0D, 0x0A, 0
-msg_vbe_signature_valid db "VBE signature was 'VESA'", 0x0D, 0x0A, 0
+msg_vbe_signature_is db 'VBE signature is: ', 0
+msg_vbe_signature_invalid db '(Error: VBE signature invalid!)', 0x0D, 0x0A, 0
+msg_vbe_signature_valid db '(signature valid)', 0x0D, 0x0A, 0
 msg_vbe_get_info_success db 'Successfully retrieved VBE info', 0x0D, 0x0A, 0
 msg_vbe_cannot_get_info db 'Error: Something went wrong when trying to get VBE info', 0x0D, 0x0A, 0
 
@@ -247,7 +248,11 @@ setup_display:
 	; Output signature (should be 'VESA' after call)
 
 	call clear_registers
+	mov si, msg_vbe_signature_is
+	call print_string
 	mov si, vbe_signature
+	call print_string
+	mov si, msg_newline
 	call print_string
 
 	; Check that signature has been set to 'VESA' before proceeding
@@ -258,14 +263,14 @@ setup_display:
 	.vesa_signature_invalid:
 
 		call clear_registers
-		mov si, msg_vbe_cannot_get_info
+		mov si, msg_vbe_signature_invalid
 		call print_string
 		hlt
 
 	.vesa_signature_valid:
 
 		call clear_registers
-		mov si, msg_vbe_get_info_success
+		mov si, msg_vbe_signature_valid
 		call print_string
 
 	; Get VBE video mode info.
@@ -289,9 +294,6 @@ setup_display:
 	;pop ax
 	;pop ds
 	;pop bp
-
-	; Debug
-	hlt
 
 mov si, msg_ready		;put a pointer to the welcome message in si
 call print_string

@@ -1,4 +1,4 @@
 #!/bin/bash
 
-nasm -i./src/ ./src/kernel.asm -o ./bin/out.bin && dd conv=notrunc ibs=1k count=5 if=./bin/out.bin of=c.img
+nasm -f bin -i./src/ ./src/kernel.asm -o ./bin/out.bin && dd conv=notrunc if=./bin/out.bin of=c.img
 echo "Finished building"
