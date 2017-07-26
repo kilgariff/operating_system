@@ -113,6 +113,8 @@ msg_help db 'Valid commands: ', 0x0D, 0x0A, 0
 msg_invalid_command db 'Invalid input', 0x0D, 0x0A, 0
 msg_vbe_available db 'VBE 2 available', 0x0D, 0x0A, 0
 msg_vbe_unavailable db 'VBE 2 unavailable', 0x0D, 0x0A, 0
+msg_vbe_signature_invalid db "VBE signature was not 'VESA'", 0x0D, 0x0A, 0
+msg_vbe_signature_valid db "VBE signature was 'VESA'", 0x0D, 0x0A, 0
 msg_vbe_get_info_success db 'Successfully retrieved VBE info', 0x0D, 0x0A, 0
 msg_vbe_cannot_get_info db 'Error: Something went wrong when trying to get VBE info', 0x0D, 0x0A, 0
 
@@ -168,26 +170,26 @@ vbe_mode_block:
 	; VESA OEM (optional in v1.0/1.1)
 	vbe_mode_width times 1 dw 0x00
 	vbe_mode_height times 1 dw 0x00
-	vbe_mode_character_width times 1 db 0
-	vbe_mode_character_height times 1 db 0
-	vbe_mode_memory_planes times 1 db 0
-	vbe_mode_bit_depth times 1 db 0
-	vbe_mode_banks times 1 db 0
-	vbe_mode_memory_model_type times 1 db 0
-	vbe_mode_bank_size times 1 db 0
-	vbe_mode_image_page_capacity times 1 db 0
-	vbe_mode_reserved_1 times 1 db 0
+	vbe_mode_character_width db 0
+	vbe_mode_character_height db 0
+	vbe_mode_memory_planes db 0
+	vbe_mode_bit_depth db 0
+	vbe_mode_banks db 0
+	vbe_mode_memory_model_type db 0
+	vbe_mode_bank_size db 0
+	vbe_mode_image_page_capacity db 0
+	vbe_mode_reserved_1 db 0
 
 	; VBE 1.2+
-	vbe_mode_red_mask_size times 1 db 0
-	vbe_mode_red_field_position times 1 db 0
-	vbe_mode_green_mask_size times 1 db 0
-	vbe_mode_green_field_position times 1 db 0
-	vbe_mode_blue_mask_size times 1 db 0
-	vbe_mode_blue_field_position times 1 db 0
-	vbe_mode_reserved_mask_size times 1 db 0
-	vbe_mode_reserved_field_position times 1 db 0
-	vbe_mode_direct_color_mode_info times 1 db 0
+	vbe_mode_red_mask_size db 0
+	vbe_mode_red_field_position db 0
+	vbe_mode_green_mask_size db 0
+	vbe_mode_green_field_position db 0
+	vbe_mode_blue_mask_size db 0
+	vbe_mode_blue_field_position db 0
+	vbe_mode_reserved_mask_size db 0
+	vbe_mode_reserved_field_position db 0
+	vbe_mode_direct_color_mode_info db 0
 
 	; VBE 2.0+
 	vbe_mode_video_buffer_address times 2 dw 0x00
@@ -195,20 +197,19 @@ vbe_mode_block:
 	vbe_mode_offscreen_memory_size times 1 dw 0x00
 
 	; VBE 3.0
-	; TODO: Fill in VBE 3.0 structure
-	; 32h	WORD	bytes per scan line in linear modes
-	; 34h	BYTE	number of images (less one) for banked video modes
-	; 35h	BYTE	number of images (less one) for linear video modes
-	; 36h	BYTE	linear modes: size of direct color red mask (in bits)
-	; 37h	BYTE	linear modes: bit position of red mask LSB (e.g. shift count)
-	; 38h	BYTE	linear modes: size of direct color green mask (in bits)
-	; 39h	BYTE	linear modes: bit position of green mask LSB (e.g. shift count)
-	; 3Ah	BYTE	linear modes: size of direct color blue mask (in bits)
-	; 3Bh	BYTE	linear modes: bit position of blue mask LSB (e.g. shift count)
-	; 3Ch	BYTE	linear modes: size of direct color reserved mask (in bits)
-	; 3Dh	BYTE	linear modes: bit position of reserved mask LSB
-	; 3Eh	DWORD	maximum pixel clock for graphics video mode, in Hz
-	; 42h 190 BYTEs	reserved (0)
+	vbe_mode_linear_bytes_per_scan_line times 1 dw 0x00
+	vbe_mode_images_banked db 0
+	vbe_mode_images_linear db 0
+	vbe_mode_direct_color_red_mask db 0
+	vbe_mode_bit_position_red_mask_lsb db 0
+	vbe_mode_direct_color_green_mask db 0
+	vbe_mode_bit_position_green_mask_lsb db 0
+	vbe_mode_direct_color_blue_mask db 0
+	vbe_mode_bit_position_blue_mask_lsb db 0
+	vbe_mode_direct_color_reserved_mask db 0
+	vbe_mode_bit_position_reserved_mask_lsb db 0
+	vbe_mode_max_clock_graphics_mode times 2 dw 0x00
+	vbe_mode_reserved_2 times 190 db 0
 
 vbe_mode_block_size equ $ - vbe_mode_block
 
@@ -228,46 +229,55 @@ setup_display:
 	mov di, vbe_info_block
 	int 0x10
 	cmp ax, 0x004F
-	je .fine
+	je .vesa_available
 
-	call clear_registers
-	mov si, msg_vbe_unavailable
-	call print_string
-	hlt
+	.vesa_unavailable:
 
-	.fine:
+		call clear_registers
+		mov si, msg_vbe_unavailable
+		call print_string
+		hlt
+
+	.vesa_available:
 
 		call clear_registers
 		mov si, msg_vbe_available
 		call print_string
 
+	; Output signature (should be 'VESA' after call)
+
 	call clear_registers
 	mov si, vbe_signature
 	call print_string
 
-	; Get VBE video mode info.
-
-	call clear_registers
-	mov ax, 0x4F01
-	mov di, vbe_info_block
-	mov cx, 0x4101
-	and cx, 0xfff
-	int 0x10
+	; Check that signature has been set to 'VESA' before proceeding
 
 	cmp dword [vbe_signature], 'VESA'
-	je .get_info_fine
+	je .vesa_signature_valid
 
-	call clear_registers
-	mov si, msg_vbe_cannot_get_info
-	call print_string
+	.vesa_signature_invalid:
 
-	hlt
+		call clear_registers
+		mov si, msg_vbe_cannot_get_info
+		call print_string
+		hlt
 
-	.get_info_fine:
+	.vesa_signature_valid:
 
-	call clear_registers
-	mov si, msg_vbe_get_info_success
-	call print_string
+		call clear_registers
+		mov si, msg_vbe_get_info_success
+		call print_string
+
+	; Get VBE video mode info.
+
+	; call clear_registers
+	; mov ax, 0x4F01
+	; mov di, vbe_mode_block
+	; mov cx, 0x4101
+	; and cx, 0xfff
+	; int 0x10
+
+	; Figure out what this does...
 
 	;push bp
 	;push ds
@@ -279,6 +289,9 @@ setup_display:
 	;pop ax
 	;pop ds
 	;pop bp
+
+	; Debug
+	hlt
 
 mov si, msg_ready		;put a pointer to the welcome message in si
 call print_string
