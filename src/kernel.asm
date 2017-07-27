@@ -128,6 +128,7 @@ cmd_echo_len equ $ - cmd_echo
 
 stage2_begin:
 
+;call test_int16_to_str
 call vesa_setup_display
 
 call clear_registers
@@ -182,6 +183,5 @@ echo:
 	call print_string
 	
 	jmp mainloop
-
 
 times 5120-($-$$) db 0
