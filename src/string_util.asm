@@ -143,6 +143,8 @@ int16_to_str:
 
 		cmp byte [di], '0'
 		jne .done
+		cmp byte [di + 1], 0
+		je .done
 		inc di
 		jmp .trim
 
