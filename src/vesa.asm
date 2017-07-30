@@ -1,19 +1,20 @@
 vbe_strings:
 
+	.header db '=== VESA (VBE 2)', 0x0D, 0x0A, 0
 	.newline db 0xD, 0xA, 0
 	.available db 'VBE 2 available', 0x0D, 0x0A, 0
 	.unavailable db 'VBE 2 unavailable', 0x0D, 0x0A, 0
-	.signature_is db 'VBE signature is: ', 0
-	.signature_invalid db '(Error: VBE signature invalid!)', 0x0D, 0x0A, 0
-	.signature_valid db '(OK!)', 0x0D, 0x0A, 0
+	.signature_is db 'Signature is ', 0
+	.signature_invalid db ' (Error: invalid!)', 0x0D, 0x0A, 0
+	.signature_valid db ' (OK!)', 0x0D, 0x0A, 0
+	.vendor db 0x9, 'Vendor: ', 0
+	.product_name db 0x9, 'Product Name: ', 0
+	.product_revision db 0x9, 'Product Name: ', 0
+	.total_memory db 0x9, 'Total Video Memory: ', 0
+	.kibibytes db ' KiB', 0
 	.get_info_success db 'Successfully retrieved VBE info', 0x0D, 0x0A, 0
 	.cannot_get_info db 'Error: Something went wrong when trying to get VBE info', 0x0D, 0x0A, 0
 
-;
-; VBE info structure
-;
-
-align 16
 vbe_info_block:
 
 	vbe_signature times 4 db 0
@@ -34,12 +35,6 @@ vbe_info_block:
 	vbe_oem_product_rev_ptr_base dw 0x00
 	vbe_reserved times 222 db 0
 	vbe_oem_data times 256 db 0
-
-vbe_info_block_size equ $ - vbe_info_block
-
-;
-; VBE video mode structure
-;
 
 vbe_mode_block:
 
@@ -98,11 +93,12 @@ vbe_mode_block:
 	vbe_mode_max_clock_graphics_mode times 2 dw 0x00
 	vbe_mode_reserved_2 times 190 db 0
 
-vbe_mode_block_size equ $ - vbe_mode_block
-
 int16_to_str_buffer times 6 db 0
 
 vesa_setup_display:
+
+	mov si, vbe_strings.header
+	call print_string
 
 	; Check whether VBE 2 is available.
 
@@ -114,20 +110,11 @@ vesa_setup_display:
 	pop es
 
 	cmp ax, 0x4F
-	je .vbe_available
+	jne .vbe_unavailable
 
-	.vbe_unavailable:
-
-		call clear_registers
-		mov si, vbe_strings.unavailable
-		call print_string
-		hlt
-
-	.vbe_available:
-
-		call clear_registers
-		mov si, vbe_strings.available
-		call print_string
+	call clear_registers
+	mov si, vbe_strings.available
+	call print_string
 
 	; Output signature (should be 'VESA' after call)
 
@@ -136,31 +123,22 @@ vesa_setup_display:
 	call print_string
 	mov si, vbe_signature
 	call print_string
-	mov si, prompt_strings.newline
-	call print_string
 
 	; Check that signature has been set to 'VESA' before proceeding
 
 	cmp dword [vbe_signature], 'VESA'
-	je .vesa_signature_valid
+	jne .vesa_signature_invalid
 
-	.vesa_signature_invalid:
-
-		call clear_registers
-		mov si, vbe_strings.signature_invalid
-		call print_string
-		hlt
-
-	.vesa_signature_valid:
-
-		call clear_registers
-		mov si, vbe_strings.signature_valid
-		call print_string
+	call clear_registers
+	mov si, vbe_strings.signature_valid
+	call print_string
 
 	; Output info
 
+	.print_vendor_string:
 
-	.vesa_print_vendor_string:
+		mov si, vbe_strings.vendor
+		call print_string
 
 		push ds
 		mov ax, word [vbe_oem_vendor_string_ptr_base]
@@ -172,7 +150,10 @@ vesa_setup_display:
 		mov si, vbe_strings.newline
 		call print_string
 
-	.vesa_print_product_name:
+	.print_product_name:
+
+		mov si, vbe_strings.product_name
+		call print_string
 
 		push ds
 		mov ax, word [vbe_oem_product_name_ptr_base]
@@ -184,7 +165,10 @@ vesa_setup_display:
 		mov si, prompt_strings.newline
 		call print_string
 
-	.vesa_print_product_rev:
+	.print_product_rev:
+
+		mov si, vbe_strings.product_revision
+		call print_string
 
 		push ds
 		mov ax, word [vbe_oem_product_rev_ptr_base]
@@ -196,12 +180,34 @@ vesa_setup_display:
 		mov si, prompt_strings.newline
 		call print_string
 
+	.print_total_memory:
+		
+		mov si, vbe_strings.total_memory
+		call print_string
+
+		mov ax, [vbe_total_memory]
+
+		; Multiply by 64 to get KiB
+		mov bx, 64
+		mul bx 
+
+		mov si, ax
+		mov di, int16_to_str_buffer
+		call int16_to_str
+		mov si, di
+		call print_string
+
+		mov si, vbe_strings.kibibytes
+		call print_string
+
+		mov si, vbe_strings.newline
+		call print_string
+
 	; Get VBE video mode info.
 
 	mov ax, 0x4F01
 	mov di, vbe_mode_block
 	mov cx, 0x4101
-	and cx, 0xfff
 	int 0x10
 
 	; call clear_registers
@@ -211,4 +217,21 @@ vesa_setup_display:
 	; mov si, di
 	; call print_string
 
+	mov si, vbe_strings.newline
+	call print_string
+
     ret
+
+	.vbe_unavailable:
+
+		call clear_registers
+		mov si, vbe_strings.unavailable
+		call print_string
+		hlt
+
+	.vesa_signature_invalid:
+
+		call clear_registers
+		mov si, vbe_strings.signature_invalid
+		call print_string
+		hlt

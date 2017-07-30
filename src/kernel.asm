@@ -64,7 +64,7 @@ prompt_strings:
 	.newline db 0x0D, 0x0A, 0
 	.ready db 0x0D, 0x0A, 'Ready', 0x0D, 0x0A, 0
 	.prompt db '> ', 0
-	.help db 'Valid commands: ', 0x0D, 0x0A, 0
+	.help db 'Valid commands: help, echo', 0x0D, 0x0A, 0
 	.invalid_command db 'Invalid input', 0x0D, 0x0A, 0
 
 input_buffer:

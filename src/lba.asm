@@ -1,9 +1,12 @@
 lba_strings:
 
-	.not_supported db 'Error: LBA support is unavailable', 0x0D, 0x0A, 0
-	.supported db 'LBA support is available', 0x0D, 0x0A, 0
-	.read_success db 'LBA read succeeded', 0x0D, 0x0A, 0
-	.read_failed db 'Error: LBA read failed', 0x0D, 0x0A, 0
+	.header db '=== LBA', 0x0D, 0x0A, 0
+	.newline db 0x0D, 0x0A, 0
+	.not_supported db 'Error: LBA support is not available', 0x0D, 0x0A, 0
+	.supported db 'LBA is available', 0x0D, 0x0A, 0
+	.stage2_header db '=== STAGE 2', 0x0D, 0x0A, 0
+	.read_success db 'Finished loading stage 2', 0x0D, 0x0A, 0
+	.read_failed db 'Error: Failed to load stage 2', 0x0D, 0x0A, 0
 
 ; define disk access packet to describe disk reads and writes
 ; (initial setup to read stage2)
@@ -27,6 +30,9 @@ disk_access_packet:
 
 setup_lba:
 
+	mov si, lba_strings.header
+	call print_string
+
     mov ah, 0x41
     mov bx, 0x55AA
     mov dl, 0x80
@@ -44,9 +50,15 @@ setup_lba:
 		mov si, lba_strings.supported
 		call print_string
 
+	mov si, lba_strings.newline
+	call print_string
+
     ret
 
 load_stage_2:
+
+	mov si, lba_strings.stage2_header
+	call print_string
 
 	mov si, disk_access_packet
 	mov ah, 0x42
@@ -68,4 +80,6 @@ load_stage_2:
 		mov si, lba_strings.read_success
 		call print_string
 	
+	mov si, lba_strings.newline
+	call print_string
     ret
