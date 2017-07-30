@@ -1,3 +1,18 @@
+print_string:
+
+    xor ax, ax
+
+    lodsb
+    or al, al
+    jz .done
+    
+    mov ah, 0xE
+    int 0x10
+    jmp print_string
+
+    .done:
+        ret
+
 ; cx should contain the number of characters
 ; to test for equality before stopping.
 
@@ -152,14 +167,68 @@ int16_to_str:
 		ret
 
 ; int16_to_str test buffer
-test_buffer times 6 db 0
+; test_buffer_16 times 6 db 0
 
-test_int16_to_str:
+; test_int16_to_str:
 
-	call clear_registers
-	mov si, 1337
-	mov di, test_buffer
-	call int16_to_str
+; 	mov si, 1337
+; 	mov di, test_buffer_16
+; 	call int16_to_str
+; 	mov si, di
+; 	call print_string
+; 	ret
+
+int32_to_str:
+
+	; Max value that an int32 can represent is 4294967295,
+	; which has 10 characters max. To isolate each character,
+	; we need to keep dividing by 10, converting the remainder
+	; into ASCII and using the quotient as the numerator in the
+	; next pass.
+
+	; Numerator (high and low)
+	mov eax, esi
+
+	; Denominator
+	mov ecx, 10
+
+	mov bx, di
+	add di, 11
+	mov byte [di], 0
+
+	.loop:
+
+		dec di
+
+		xor edx, edx
+		div ecx
+		add edx, '0' ; Add ascii '0' to convert dx's value into ascii.
+
+		mov byte [di], dl
+
+		cmp di, bx
+		jne .loop
+
+	.trim:
+
+		cmp byte [di], '0'
+		jne .done
+		cmp byte [di + 1], 0
+		je .done
+		inc di
+		jmp .trim
+
+	.done:
+		ret
+
+; int32_to_str test buffer
+test_buffer_32 times 11 db 0
+
+test_int32_to_str:
+
+	mov esi, 65537
+	mov di, test_buffer_32
+	call int32_to_str
 	mov si, di
 	call print_string
 	ret

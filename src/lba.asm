@@ -66,7 +66,6 @@ load_stage_2:
 	mov dl, 0x80 ; drive number 0 (OR the drive # with 0x80)
 	int 0x13
 
-	call clear_registers
 	jnc .read_succeeded
 
 	.read_failed:

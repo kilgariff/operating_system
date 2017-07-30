@@ -125,13 +125,11 @@ vesa_setup_display:
 		cmp ax, 0x4F
 		jne .vbe_unavailable
 
-		call clear_registers
 		mov si, vbe_strings.available
 		call print_string
 
 		; Output signature (should be 'VESA' after call)
 
-		call clear_registers
 		mov si, vbe_strings.signature_is
 		call print_string
 		mov si, vbe_signature
@@ -142,7 +140,6 @@ vesa_setup_display:
 		cmp dword [vbe_signature], 'VESA'
 		jne .vesa_signature_invalid
 
-		call clear_registers
 		mov si, vbe_strings.signature_valid
 		call print_string
 
@@ -222,14 +219,12 @@ vesa_setup_display:
 
 	.vbe_unavailable:
 
-		call clear_registers
 		mov si, vbe_strings.unavailable
 		call print_string
 		hlt
 
 	.vesa_signature_invalid:
 
-		call clear_registers
 		mov si, vbe_strings.signature_invalid
 		call print_string
 		hlt
@@ -298,7 +293,6 @@ print_mode_info:
 
 	.get_mode_failed:
 
-		call clear_registers
 		mov si, vbe_strings.cannot_get_mode_info
 		call print_string
 		hlt
