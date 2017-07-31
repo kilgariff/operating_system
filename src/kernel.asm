@@ -64,7 +64,10 @@ stage_2:
 
 	mov ax, 261
 	call vesa_switch_mode
+
 	call enter_long_mode
+
+	hlt
 
 	;call begin_command_prompt
 

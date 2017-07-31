@@ -104,6 +104,7 @@ enter_long_mode:
         mov ecx, 512                 ; Set the C-register to 512.
         
         .set_entry:
+
             mov DWORD [edi], ebx         ; Set the uint32_t at the destination index to the B-register.
             add ebx, 0x1000              ; Add 0x1000 to the B-register.
             add edi, 8                   ; Add eight to the destination index.
@@ -130,6 +131,7 @@ enter_long_mode:
 
         ; "Enabling paging and protected mode:"
 
+        cli                          ; Clear interrupt flags (disable interrupts)
         mov eax, cr0                 ; Set the A-register to control register 0.
         or eax, 1 << 31 | 1 << 0     ; Set the PG-bit, which is the 31nd bit, and the PM-bit, which is the 0th bit.
         mov cr0, eax                 ; Set control register 0 to the A-register.
@@ -149,14 +151,14 @@ enter_long_mode:
         lgdt [GDT64.Pointer]         ; Load the 64-bit global descriptor table.
         jmp GDT64.Code:realm_64       ; Set the code segment and enter 64-bit long mode.
 
-        ; 'Now that we're in 64-bit, we want to do something that is actually 64-bit.
-        ; In this sample I'm just going with an ordinary clear the screen (see realm_64)'
-
     ret
 
 ; Use 64-bit.
 [BITS 64]
 realm_64:
+
+    ; "Now that we're in 64-bit, we want to do something that is actually 64-bit.
+    ; In this sample I'm just going with an ordinary clear the screen"
     
     cli                           ; Clear the interrupt flag.
     mov ax, GDT64.Data            ; Set the A-register to the data descriptor.
@@ -170,4 +172,5 @@ realm_64:
     mov ecx, 500                  ; Set the C-register to 500.
     rep stosq                     ; Clear the screen.
     hlt ; Temporary, to test that the long mode screen clear worked
+
 [BITS 16]

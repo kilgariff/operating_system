@@ -1,3 +1,4 @@
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="c.img", mode=flat, cylinders=10, heads=1, spt=1
+cpuid: x86_64=1
 boot: disk
