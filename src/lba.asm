@@ -23,7 +23,7 @@ disk_access_packet:
 		; these parameters are a SEGMENT:OFFSET address pair, but are stored
 		; in reverse order due to processor being little-endian.
 		dw	stage_2_load_point
-		dw	0x07C0
+		dw	0x0000
 	.lba:
 		dd	1		; read mode
 		dd	0

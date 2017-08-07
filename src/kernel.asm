@@ -1,3 +1,6 @@
+[ORG 0x7C00]
+cli
+
 ;
 ; Bootloader Stage 1
 ;
@@ -8,16 +11,6 @@ jmp stage_1
 %include "lba.asm"
 
 stage_1:
-
-	;
-	; Set up data segment and extra segment registers
-	; to use 0x07C0 as a base, as this is the memory
-	; location the bios will load our code into.
-	;
-
-	mov ax, 0x07C0
-	mov ds, ax
-	mov es, ax
 
 	;
 	; Change active display page to 1
@@ -59,16 +52,14 @@ stage_2_load_point:
 stage_2:
 
 	call setup_cpu_info
-	call cpu_require_long_mode
-	call vesa_setup_display
+	;call cpu_require_long_mode
+	;call vesa_setup_display
 
-	mov ax, 261
-	call vesa_switch_mode
+	;mov ax, 261
+	;call vesa_switch_mode
 
-	call enter_long_mode
+	;call enter_long_mode
 
-	hlt
-
-	;call begin_command_prompt
+	call begin_command_prompt
 
 times 5120-($-$$) db 0
