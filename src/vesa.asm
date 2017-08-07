@@ -2,6 +2,7 @@ vbe_strings:
 
 	.header db '=== VESA (VBE 2)', 0x0D, 0x0A, 0
 	.newline db 0xD, 0xA, 0
+	.colon db ':', 0
 	.available db 'VBE 2 available', 0x0D, 0x0A, 0
 	.unavailable db 'VBE 2 unavailable', 0x0D, 0x0A, 0
 	.get_info_success db 'Successfully retrieved VBE info', 0x0D, 0x0A, 0
@@ -21,7 +22,9 @@ vbe_strings:
 	.mode_width db ')', 0x9, 0
 	.mode_height db 'x', 0
 	.mode_bpp db ' at ', 0
-	.mode_after_bpp db 'bpp', 0x0D, 0x0A, 0
+	.mode_after_bpp db 'bpp', 0
+	.mode_video_memory db ' (vidmem @ ', 0
+	.mode_after_video_memory db ')', 0
 	.setting_video_mode_to db 'Setting video mode to ', 0
 	.cannot_switch_mode db 'Unable to switch video mode', 0, 0x0D, 0x0A
 	.linear_framebuffer_not_available db 'Linear framebuffer not available in new video mode', 0, 0x0D, 0x0A
@@ -229,9 +232,8 @@ vesa_setup_display:
 		call print_string
 		hlt
 
-print_mode_info:
+vesa_print_mode_info:
 
-	push cx
 	mov ax, 0x4F01
 	mov di, vbe_mode_block
 	int 0x10
@@ -239,12 +241,18 @@ print_mode_info:
 	cmp ax, 0x4F
 	jne .get_mode_failed
 
+	; Only print graphical modes with linear addressing
+	
+	mov ax, [vbe_mode_attributes]
+	test ax, (1 << 7) | (1 << 4) | (1 << 0)
+	je .skip
+
 	; Print mode number
 
 	mov si, vbe_strings.mode_number
 	call print_string
 
-	pop si 
+	mov si, cx
 	mov di, int16_to_str_buffer
 	call int16_to_str
 	mov si, di
@@ -283,13 +291,45 @@ print_mode_info:
 	mov si, ax
 	mov di, int16_to_str_buffer
 	call int16_to_str
+
 	mov si, di
 	call print_string
 
 	mov si, vbe_strings.mode_after_bpp
 	call print_string
 
+	; Print pointer to mode graphics buffer
+
+	mov si, vbe_strings.mode_video_memory
+	call print_string
+
+	mov si, [vbe_mode_video_buffer_ptr_base]
+	mov di, int16_to_str_buffer
+	call int16_to_str
+
+	mov si, di
+	call print_string
+
+	mov si, vbe_strings.colon
+	call print_string
+
+	mov si, [vbe_mode_video_buffer_ptr_offset]
+	mov di, int16_to_str_buffer
+	call int16_to_str
+
+	mov si, di
+	call print_string
+
+	mov si, vbe_strings.mode_after_video_memory
+	call print_string
+
+	mov si, vbe_strings.newline
+	call print_string
+
 	ret
+
+	.skip:
+		ret
 
 	.get_mode_failed:
 
@@ -301,9 +341,22 @@ vesa_switch_mode:
 
 	mov cx, ax
 	and cx, 0b0111111111111111 ; Don't preserve memory on change
-	or cx, 0b0100000000000000 ; Switch on linear addressing
+	or cx, 0b0100000000000000 ; Turn on linear addressing
 
-	mov cx, 0b0100000101000100
+	; Only print graphical modes with linear addressing
+	
+	mov ax, [vbe_mode_attributes]
+	test ax, (1 << 7) | (1 << 4) | (1 << 0)
+	je .switch_mode_failed
+
+	; Get mode info
+
+	mov ax, 0x4F01
+	mov di, vbe_mode_block
+	int 0x10
+
+	cmp ax, 0x4F
+	jne .switch_mode_failed
 
 	; Perform switch
 
@@ -329,54 +382,14 @@ vesa_switch_mode:
 	mov si, vbe_strings.newline
 	call print_string
 
-	; Get current mode info
-
-	mov ax, 0x4F03
-	int 0x10
-
-	cmp ax, 0x4F
-	jne .switch_mode_failed
-
-	; ; All these checks are failing for some reason...?
-	; ; (the video mode change does seem to work...)
-
-	; 	; Check that the requested mode was set
-	; 	;cmp cx, bx
-	; 	;jne .linear_framebuffer_not_available
-
-	; 	;and bx, 0b0100000000000000
-	; 	; the SF, ZF, and PF flags are set according to the result.
-	; 	;cmp bx, 0
-	; 	;je .linear_framebuffer_not_available
-
-	; mov es, [vbe_mode_video_buffer_ptr_base]
-	; mov di, [vbe_mode_video_buffer_ptr_offset]
-	; mov cx, 0
-
-	; .loop:
-
-	; 	mov word [es:di], 0x00ff
-
-	; 	cmp cx, 1024
-	; 	je .done
-
-	; 	inc di
-	; 	inc cx
-
-	; 	;mov cx, 65535
-	; 	;push es
-	; 	;mov es, [vbe_mode_video_buffer_ptr_base]
-	; 	;mov di, [vbe_mode_video_buffer_ptr_offset]
-	; 	;mov al, 0xF
-	; 	;rep stosb
-	; 	;pop es
-
-	; 	jmp .loop
-
-	; .done:
-	; 	mov cx, 0
-	; 	mov di, [vbe_mode_video_buffer_ptr_offset]
-	; 	jmp .loop
+	push es
+	xor ax, ax
+	mov cx, 1024
+	mov es, [vbe_mode_video_buffer_ptr_base]
+	mov di, [vbe_mode_video_buffer_ptr_offset]
+	mov al, 0xF
+	rep stosb
+	pop es
 
 	ret
 
@@ -392,45 +405,45 @@ vesa_switch_mode:
 		call print_string
 		hlt
 
-	vesa_show_modes:
+vesa_show_modes:
 
-		mov si, vbe_strings.mode_info
-		call print_string
+	mov si, vbe_strings.mode_info
+	call print_string
 
-		mov si, [vbe_video_mode_ptr_offset]
+	mov si, [vbe_video_mode_ptr_offset]
 
-		; Maximum number of modes to show (times 2)
-		mov bx, si
-		add bx, 64
+	; Maximum number of modes to show (times 2)
+	mov bx, si
+	add bx, 64
 
-		.loop:
+	.loop:
 
-			cmp bx, si
-			je .done
+		cmp bx, si
+		je .done
 
-			push ds
-			mov ds, [vbe_video_mode_ptr_base]
-			mov ax, word [ds:si]
-			pop ds
+		push ds
+		mov ds, [vbe_video_mode_ptr_base]
+		mov ax, word [ds:si]
+		pop ds
 
-			; Finished?
-			cmp ax, 0xFFFF
-			je .done
+		; Finished?
+		cmp ax, 0xFFFF
+		je .done
 
-			push bx
-			push si
-			mov cx, ax
-			call print_mode_info
-			pop si
-			pop bx
+		push bx
+		push si
+		mov cx, ax
+		call vesa_print_mode_info
+		pop si
+		pop bx
 
-			.next_mode:
+		.next_mode:
 
-				add si, 2
-				jne .loop
+			add si, 2
+			jne .loop
 
-		.done:
-		
-			nop
+	.done:
+	
+		nop
 
 	ret

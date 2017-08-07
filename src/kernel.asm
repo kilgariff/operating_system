@@ -53,13 +53,20 @@ stage_2:
 
 	call setup_cpu_info
 	;call cpu_require_long_mode
-	;call vesa_setup_display
+	call vesa_setup_display
 
-	;mov ax, 261
-	;call vesa_switch_mode
+	call vesa_show_modes
+
+	mov cx, 323
+	call vesa_print_mode_info
+
+	mov ax, 323
+	call vesa_switch_mode
 
 	;call enter_long_mode
 
-	call begin_command_prompt
+	;call begin_command_prompt
+
+	hlt
 
 times 5120-($-$$) db 0
