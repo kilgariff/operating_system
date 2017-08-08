@@ -89,8 +89,7 @@ vbe_mode_block:
 	vbe_mode_direct_color_mode_info db 0
 
 	; VBE 2.0+
-	vbe_mode_video_buffer_ptr_offset dw 0
-	vbe_mode_video_buffer_ptr_base dw 0
+	vbe_mode_video_buffer_ptr dd 0
 	vbe_mode_offscreen_memory_pointer dd 0
 	vbe_mode_offscreen_memory_size dw 0
 
@@ -110,6 +109,7 @@ vbe_mode_block:
 	vbe_mode_reserved_2 times 190 db 0
 
 int16_to_str_buffer times 6 db 0
+int32_to_str_buffer times 11 db 0
 
 vesa_setup_display:
 
@@ -303,25 +303,25 @@ vesa_print_mode_info:
 	mov si, vbe_strings.mode_video_memory
 	call print_string
 
-	mov si, [vbe_mode_video_buffer_ptr_base]
-	mov di, int16_to_str_buffer
-	call int16_to_str
+	mov esi, dword [vbe_mode_video_buffer_ptr]
+	mov di, int32_to_str_buffer
+	call int32_to_str
 
 	mov si, di
 	call print_string
 
-	mov si, vbe_strings.colon
-	call print_string
+	; mov si, vbe_strings.colon
+	; call print_string
 
-	mov si, [vbe_mode_video_buffer_ptr_offset]
-	mov di, int16_to_str_buffer
-	call int16_to_str
+	; mov si, [vbe_mode_video_buffer_ptr_offset]
+	; mov di, int16_to_str_buffer
+	; call int16_to_str
 
-	mov si, di
-	call print_string
+	; mov si, di
+	; call print_string
 
-	mov si, vbe_strings.mode_after_video_memory
-	call print_string
+	; mov si, vbe_strings.mode_after_video_memory
+	; call print_string
 
 	mov si, vbe_strings.newline
 	call print_string
@@ -381,15 +381,6 @@ vesa_switch_mode:
 
 	mov si, vbe_strings.newline
 	call print_string
-
-	push es
-	xor ax, ax
-	mov cx, 1024
-	mov es, [vbe_mode_video_buffer_ptr_base]
-	mov di, [vbe_mode_video_buffer_ptr_offset]
-	mov al, 0xF
-	rep stosb
-	pop es
 
 	ret
 

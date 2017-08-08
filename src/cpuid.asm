@@ -81,7 +81,7 @@ cpu_features:
         .ia64       db 30
         .pbe        db 31
 
-int32_to_str_buffer times 11 db 0
+cpuid_int32_to_str_buffer times 11 db 0
 
 setup_cpu_info:
 
@@ -133,7 +133,7 @@ setup_cpu_info:
     call print_string
 
     mov esi, [cpu_info.features]
-    mov di, int32_to_str_buffer
+    mov di, cpuid_int32_to_str_buffer
     call int32_to_str
     mov si, di
     call print_string
@@ -142,7 +142,7 @@ setup_cpu_info:
     call print_string
 
     mov esi, [cpu_info.features + 4]
-    mov di, int32_to_str_buffer
+    mov di, cpuid_int32_to_str_buffer
     call int32_to_str
     mov si, di
     call print_string

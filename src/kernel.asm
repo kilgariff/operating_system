@@ -63,10 +63,22 @@ stage_2:
 	mov ax, 323
 	call vesa_switch_mode
 
-	;call enter_long_mode
+	call enter_long_mode
 
 	;call begin_command_prompt
 
 	hlt
 
-times 5120-($-$$) db 0
+[BITS 64]
+main64:
+
+	; mov ecx, 100
+	; ;mov edi, dword [vbe_mode_video_buffer_ptr]
+	; mov edi, 3758096384
+	; mov eax, 0xFFFFFFFF
+	; rep stosw
+
+    hlt
+[BITS 16]
+
+times 4096-($-$$) db 0

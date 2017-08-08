@@ -99,9 +99,11 @@ enter_long_mode:
         ; readable as well as writable."
 
         ; "Now all that's left to do is identity map the first two megabytes:"
+        ; This involves populating the page table with pages.
+        ; Each page has flags from bytes 0 to 11, then the page address in 12 to 31.
         
         mov ebx, 0x00000003          ; Set the B-register to 0x00000003.
-        mov ecx, 512                 ; Set the C-register to 512.
+        mov ecx, 512                 ; Set the C-register to 512 (512 * page size is 2MiB)
         
         .set_entry:
 
@@ -157,20 +159,6 @@ enter_long_mode:
 [BITS 64]
 realm_64:
 
-    ; "Now that we're in 64-bit, we want to do something that is actually 64-bit.
-    ; In this sample I'm just going with an ordinary clear the screen"
-    
-    cli                           ; Clear the interrupt flag.
-    mov ax, GDT64.Data            ; Set the A-register to the data descriptor.
-    mov ds, ax                    ; Set the data segment to the A-register.
-    mov es, ax                    ; Set the extra segment to the A-register.
-    mov fs, ax                    ; Set the F-segment to the A-register.
-    mov gs, ax                    ; Set the G-segment to the A-register.
-    mov ss, ax                    ; Set the stack segment to the A-register.
-    mov edi, 0xB8000              ; Set the destination index to 0xB8000.
-    mov rax, 0x1F201F201F201F20   ; Set the A-register to 0x1F201F201F201F20.
-    mov ecx, 500                  ; Set the C-register to 500.
-    rep stosq                     ; Clear the screen.
-    hlt ; Temporary, to test that the long mode screen clear worked
+    jmp main64
 
 [BITS 16]

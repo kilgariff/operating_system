@@ -18,7 +18,7 @@ disk_access_packet:
 	.num_blocks:
 		; BIOS interrupt 0x13 changes this to the number of blocks actually
 		; read or written. I think each block is 512 bytes (same as one sector).
-		dw	9 ; 10 in total, including this one.
+		dw	7 ; 8 in total, including this one.
 	.destination_buffer:
 		; these parameters are a SEGMENT:OFFSET address pair, but are stored
 		; in reverse order due to processor being little-endian.
