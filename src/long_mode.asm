@@ -68,7 +68,8 @@ enter_long_mode:
         ; (assuming that this is free to use): a PML4T, a PDPT, a PDT and
         ;  a PT. Basically we want to identity map the first two megabytes"
 
-        ; Clear tables
+        ; Clear tables.
+        ; Region from 0x1000 to 0x21000 is blanked (size of 4096 dwords, or 16384 bytes)
 
         mov edi, 0x1000    ; Set the destination index to 0x1000.
         mov cr3, edi       ; Set control register 3 to the destination index.
@@ -77,21 +78,18 @@ enter_long_mode:
         rep stosd          ; Clear the memory.
         mov edi, cr3       ; Set the destination index to control register 3.
 
-        ; "Now that the page are clear we're going to set up the tables,
-        ; the page tables are going to be located at these addresses:"
+        ; Now, use the starting value of edi (0x1000) to put entries in tables.
+        ; Each table is located 4096 bytes ahead of the previous table.
+        ; http://wiki.osdev.org/Page_Tables#4_KiB_pages_3
+        
         ; PML4T - 0x1000.
         ; PDPT - 0x2000.
         ; PDT - 0x3000.
         ; PT - 0x4000.
 
-        ; Set up tables
-
-        mov DWORD [edi], 0x2003      ; Set the uint32_t at the destination index to 0x2003.
-        add edi, 0x1000              ; Add 0x1000 to the destination index.
-        mov DWORD [edi], 0x3003      ; Set the uint32_t at the destination index to 0x3003.
-        add edi, 0x1000              ; Add 0x1000 to the destination index.
-        mov DWORD [edi], 0x4003      ; Set the uint32_t at the destination index to 0x4003.
-        add edi, 0x1000              ; Add 0x1000 to the destination index.
+        mov DWORD [0x1000], 0x2003 ; put location of PDPT into PML4T
+        mov DWORD [0x2000], 0x3003 ; put location of PDT into PDPT
+        mov DWORD [0x3000], 0x4003 ; put location of PT into PDPT
 
         ; "If you haven't noticed already, I used a three.
         ; This simply means that the first two bits should be set.
@@ -102,15 +100,19 @@ enter_long_mode:
         ; This involves populating the page table with pages.
         ; Each page has flags from bytes 0 to 11, then the page address in 12 to 31.
         
-        mov ebx, 0x00000003          ; Set the B-register to 0x00000003.
-        mov ecx, 512                 ; Set the C-register to 512 (512 * page size is 2MiB)
+        mov edi, 0x4000 ; Pointer to initial page table entry.
+        mov ebx, 0x00000003 ; Initial entry value (physical memory address that the entry points to).
+
+        ; 512 * 8 is 4096, which is the number of bytes per page table.
+        ; 512 * 4096 is 2MiB, which is the total amount of memory a single page table can point to.
+        mov ecx, 512
         
         .set_entry:
 
-            mov DWORD [edi], ebx         ; Set the uint32_t at the destination index to the B-register.
-            add ebx, 0x1000              ; Add 0x1000 to the B-register.
-            add edi, 8                   ; Add eight to the destination index.
-            loop .set_entry              ; Set the next entry.
+            mov DWORD [edi], ebx         ; Put the current entry value into the page table.
+            add ebx, 0x1000              ; Point to the next 4KiB block of physical memory.
+            add edi, 8                   ; Point to the next page table entry.
+            loop .set_entry              ; Repeat until ecx is 0
 
         ; "Now we should enable PAE-paging by setting the PAE-bit in the fourth
         ; control register:"
