@@ -85,18 +85,18 @@ enter_long_mode:
         ; PML4T - 0x1000.
         ; PDPT - 0x2000.
         ; PDT - 0x3000.
-        ; PT - 0x4000.
+        ; PT (1) - 0x4000 (first 2 MiB identity mapped)
+        ; PT (2) - 0x5000 (vesa graphics frambuffer mapped)
 
         mov DWORD [0x1000], 0x2003 ; put location of PDPT into PML4T
         mov DWORD [0x2000], 0x3003 ; put location of PDT into PDPT
-        mov DWORD [0x3000], 0x4003 ; put location of PT into PDPT
+        mov DWORD [0x3000], 0x4003 ; put location of PT (1) into PDT
+        mov DWORD [0x3008], 0x5003 ; put location of PT (2) into PDT
 
-        ; "If you haven't noticed already, I used a three.
-        ; This simply means that the first two bits should be set.
-        ; These bits indicate that the page is present and that it is
-        ; readable as well as writable."
+        ;
+        ; PT (1) - Identity map the first 2 MiB
+        ;
 
-        ; "Now all that's left to do is identity map the first two megabytes:"
         ; This involves populating the page table with pages.
         ; Each page has flags from bytes 0 to 11, then the page address in 12 to 31.
         
@@ -107,12 +107,30 @@ enter_long_mode:
         ; 512 * 4096 is 2MiB, which is the total amount of memory a single page table can point to.
         mov ecx, 512
         
-        .set_entry:
+        .pt1_set_entry:
 
             mov DWORD [edi], ebx         ; Put the current entry value into the page table.
             add ebx, 0x1000              ; Point to the next 4KiB block of physical memory.
             add edi, 8                   ; Point to the next page table entry.
-            loop .set_entry              ; Repeat until ecx is 0
+            loop .pt1_set_entry              ; Repeat until ecx is 0
+
+        ;
+        ; PT (2) - Map the VESA linear framebuffer
+        ;
+
+        mov edi, 0x5000 ; Pointer to initial page table entry.
+        mov ebx, 0xE0000003 ; Initial entry value (physical memory address that the entry points to).
+
+        ; 512 * 8 is 4096, which is the number of bytes per page table.
+        ; 512 * 4096 is 2MiB, which is the total amount of memory a single page table can point to.
+        mov ecx, 512
+        
+        .pt2_set_entry:
+
+            mov DWORD [edi], ebx         ; Put the current entry value into the page table.
+            add ebx, 0x1000              ; Point to the next 4KiB block of physical memory.
+            add edi, 8                   ; Point to the next page table entry.
+            loop .pt2_set_entry          ; Repeat until ecx is 0
 
         ; "Now we should enable PAE-paging by setting the PAE-bit in the fourth
         ; control register:"

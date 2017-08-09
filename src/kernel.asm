@@ -70,15 +70,60 @@ stage_2:
 	hlt
 
 [BITS 64]
+
 main64:
 
-	; mov ecx, 100
-	; ;mov edi, dword [vbe_mode_video_buffer_ptr]
-	; mov edi, 3758096384
-	; mov eax, 0xFFFFFFFF
-	; rep stosw
+	; jmp .skip_thing
+	; .flt_600: dd 1142292480 ; float value 600
+	; .skip_thing:
 
-    hlt
+	mov esi, 0
+
+	.main_loop:
+
+		mov ecx, 600
+		mov edi, 0x00200000 ; Physical address is 0xE0000000, memory mapped address is 0x00200000 (2 MiB in)
+
+		.draw_row:
+			mov ebx, ecx
+			mov ecx, 800
+
+			; Lerp (gradient effect)
+
+			; movss xmm0, dword [.flt_600] ; float 600, xmm0 = mem[0],zero,zero,zero
+			; mov eax, ecx ; 0 <= ecx < 600
+
+			; cvtsi2ss xmm1, rax ; Convert integer in rax (eax) to float
+			; divss xmm1, xmm0 ; Person division
+			; movaps xmm0, xmm1 ; Move result into xmm0 (0 <= xmm0 < 1)
+
+			; mov eax, 0xFF ; Goal is to map the xmm0 to (0x00, 0xFF)
+
+			; cvtsi2ss xmm1, rax
+			; mulss xmm0, xmm1 ; Perform floating-point multiply
+			; cvttss2si rax, xmm0 ; Convert back into unsigned integer, ready for rep stosd to draw the line
+
+			mov edx, ebx
+			add edx, esi
+			and edx, 0xFF
+
+			xor eax, eax
+			or eax, 0xFF ; Alpha
+			shl eax, 8
+			or eax, edx  ; Blue
+			shl eax, 8
+			or eax, edx  ; Green
+			shl eax, 8
+			or eax, edx  ; Red
+
+			rep stosd
+			mov ecx, ebx
+			loop .draw_row
+
+		add esi, 8
+		jmp .main_loop
+
+		hlt
 [BITS 16]
 
 times 4096-($-$$) db 0
