@@ -79,12 +79,48 @@ main64:
 
 	mov esi, 0
 
+	;
+	; Init PS2 mouse
+	;
+
+	
+
 	.main_loop:
 
 		mov ecx, 600
 		mov edi, 0x00200000 ; Physical address is 0xE0000000, memory mapped address is 0x00200000 (2 MiB in)
 
+		;
+		; PS2 mouse input.
+		; (this is very rough and ad-hoc just now)
+		; http://wiki.osdev.org/Mouse_Input#Initializing_a_PS2_Mouse
+		;
+
+		xor al, al
+		in al, 0x64
+		test al, 0b100001
+		jz .no_mouse_data
+
+			xor eax, eax
+
+			; Read 3 bytes from the mouse/keyboard port (byte 1 is state, 2 and 3 are coords)
+			in al, 0x60
+			shl al, 8
+			
+			in al, 0x60
+			shl al, 8
+
+			in al, 0x60
+			shl al, 8
+
+			; Mouse data received; set esi to mouse y coord
+			and eax, 0xFF
+			mov esi, eax
+
 		.draw_row:
+
+			.no_mouse_data:
+
 			mov ebx, ecx
 			mov ecx, 800
 
