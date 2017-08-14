@@ -71,6 +71,8 @@ stage_2:
 
 [BITS 64]
 
+%include "interrupts.asm"
+
 stack64_top: dq 16
 stack64_bottom:
 
@@ -108,17 +110,9 @@ main64:
 	; Set up interrupts
 	;
 
-	; jmp .skip_thing
-	; .flt_600: dd 1142292480 ; float value 600
-	; .skip_thing:
+	;lidt [IDT64.Pointer]
 
 	mov esi, 0
-
-	;
-	; Init PS2 mouse
-	;
-
-	
 
 	.main_loop:
 
@@ -152,9 +146,9 @@ main64:
 			and eax, 0xFF
 			mov esi, eax
 
-		.draw_row:
+		.no_mouse_data:
 
-			.no_mouse_data:
+		.draw_row:
 
 			mov ebx, ecx
 			mov ecx, 800
