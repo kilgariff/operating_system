@@ -52,7 +52,7 @@ stage_2_load_point:
 stage_2:
 
 	call setup_cpu_info
-	;call cpu_require_long_mode
+	call cpu_require_long_mode
 	call vesa_setup_display
 
 	call vesa_show_modes
@@ -71,7 +71,42 @@ stage_2:
 
 [BITS 64]
 
+stack64_top: dq 16
+stack64_bottom:
+
 main64:
+
+	;
+	; Set up the stack
+	;
+
+	mov rsp, stack64_bottom
+	mov rbp, stack64_bottom
+
+	.test_stack_part_1:
+
+		mov rax, 0xF00DF00DF00DF00D
+		push rax
+		cmp rax, qword [stack64_bottom - 8]
+		je .test_stack_part_2
+		hlt
+
+	.test_stack_part_2:
+
+		mov rbx, 0xBAADD00DBAADD00D
+		push rbx
+		cmp rbx, qword [stack64_bottom - 16]
+		je .stack_works
+		hlt
+
+	.stack_works:
+
+		pop rbx
+		pop rax
+
+	;
+	; Set up interrupts
+	;
 
 	; jmp .skip_thing
 	; .flt_600: dd 1142292480 ; float value 600
