@@ -51,6 +51,10 @@ stage_2_load_point:
 
 stage_2:
 
+	; We're not in long mode yet, so we can run the command prompt
+
+	; call begin_command_prompt
+
 	call setup_cpu_info
 	call cpu_require_long_mode
 	call vesa_setup_display
@@ -65,8 +69,6 @@ stage_2:
 
 	call enter_long_mode
 
-	;call begin_command_prompt
-
 	hlt
 
 [BITS 64]
@@ -76,6 +78,7 @@ stage_2:
 stack64_top: dq 16
 stack64_bottom:
 
+; Long-mode entry point.
 main64:
 
 	;
@@ -110,7 +113,15 @@ main64:
 	; Set up interrupts
 	;
 
-	;lidt [IDT64.Pointer]
+	lidt [IDT64.Pointer]
+
+	;
+	; Initialize PS/2 mouse.
+	;
+
+	;
+	; Main Loop:
+	;
 
 	mov esi, 0
 
@@ -127,7 +138,12 @@ main64:
 
 		xor al, al
 		in al, 0x64
+
+		; Keyboard controller status register:
+		; https://www.win.tue.nl/~aeb/linux/kbd/scancodes-11.html
 		test al, 0b100001
+
+		; Skip mouse read if there's no mouse data.
 		jz .no_mouse_data
 
 			xor eax, eax
@@ -143,7 +159,7 @@ main64:
 			shl al, 8
 
 			; Mouse data received; set esi to mouse y coord
-			and eax, 0xFF
+			or eax, 0xFF
 			mov esi, eax
 
 		.no_mouse_data:
@@ -153,20 +169,7 @@ main64:
 			mov ebx, ecx
 			mov ecx, 800
 
-			; Lerp (gradient effect)
-
-			; movss xmm0, dword [.flt_600] ; float 600, xmm0 = mem[0],zero,zero,zero
-			; mov eax, ecx ; 0 <= ecx < 600
-
-			; cvtsi2ss xmm1, rax ; Convert integer in rax (eax) to float
-			; divss xmm1, xmm0 ; Person division
-			; movaps xmm0, xmm1 ; Move result into xmm0 (0 <= xmm0 < 1)
-
-			; mov eax, 0xFF ; Goal is to map the xmm0 to (0x00, 0xFF)
-
-			; cvtsi2ss xmm1, rax
-			; mulss xmm0, xmm1 ; Perform floating-point multiply
-			; cvttss2si rax, xmm0 ; Convert back into unsigned integer, ready for rep stosd to draw the line
+			; Render a flat-colour row of pixels.
 
 			mov edx, ebx
 			add edx, esi
@@ -185,7 +188,8 @@ main64:
 			mov ecx, ebx
 			loop .draw_row
 
-		add esi, 8
+		add esi, 1
+
 		jmp .main_loop
 
 		hlt

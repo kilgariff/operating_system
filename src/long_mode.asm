@@ -160,9 +160,10 @@ enter_long_mode:
 
         ; "Now we're in compatibility mode"
 
-        ; "Now that we're in long mode, there's one issue left: we are in the 32-bit
-        ; compatibility submode and we actually wanted to enter 64-bit long mode.
-        ; This isn't a hard thing to do. We should load just load a GDT with the
+        ; "There's one issue left: we are in the 32-bit compatibility submode and we
+        ; actually wanted to enter 64-bit long mode.
+
+        ; This isn't a hard thing to do. We should just load a GDT with the
         ; 64-bit flags set in the code and data selectors."
 
         ; "Our GDT (see chapter 4.8.1 and 4.8.2 of the AMD64 Architecture Programmer's

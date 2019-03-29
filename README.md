@@ -6,3 +6,9 @@ That could be why it's impossible for me to draw to the screen just now.
 I found this out by reading the VESA specification:
 
 http://www.phatcode.net/res/221/files/vbe20.pdf
+
+
+---
+
+- x86 Assembly Reference: https://www.felixcloutier.com/x86/
+

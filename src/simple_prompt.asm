@@ -19,6 +19,7 @@ command_strings:
 	.set_video_mode db 'vidmode set', 0
 	.set_video_mode_len equ $ - .set_video_mode
 	.show_video_modes db 'vidmode list', 0
+	.start db 'start', 0
 
 begin_command_prompt:
 
@@ -38,12 +39,20 @@ begin_command_prompt:
 		mov si, input_buffer
 		cmp byte [si], 0	;blank line?
 		je .mainloop			;yes, ignore it
-			
+
+		;;; 'help' command	
 		mov si, input_buffer
 		mov di, command_strings.help
 		call strcmp
 		jc .help
-		
+
+		;;; 'start' command
+		mov si, input_buffer
+		mov di, command_strings.start
+		call strcmp
+		ret ; Return to calling code, which will start the rest of the OS.
+
+		;;;; 'echo' command
 		mov si, input_buffer
 		mov di, command_strings.echo
 		mov cx, command_strings.echo_len - 1

@@ -2,3 +2,8 @@ ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata0-master: type=disk, path="c.img", mode=flat, cylinders=8, heads=1, spt=1
 boot: disk
 vga: realtime=1, update_freq=60
+
+mouse: enabled=1 
+mouse: type=imps2, enabled=1 
+mouse: type=serial, enabled=1 
+mouse: enabled=0, toggle=ctrl+f10
