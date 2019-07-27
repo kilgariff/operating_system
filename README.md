@@ -1,3 +1,8 @@
+This is a *very* simple and incomplete experimental operating system project.
+
+---
+## My Dev Notes:
+
 Thought about VESA:
 
 The video memory pointer provided by a mode info block is an actual 32-bit pointer, not a segment:offset pointer.
@@ -9,6 +14,4 @@ http://www.phatcode.net/res/221/files/vbe20.pdf
 
 
 ---
-
 - x86 Assembly Reference: https://www.felixcloutier.com/x86/
-
